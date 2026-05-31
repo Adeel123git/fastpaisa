@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Check, Upload, Info } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-const DepositModal = ({ plan, isOpen, onClose }) => {
+const DepositModal = ({ plan, isOpen, onClose, onNewDeposit }) => {
   const [trxId, setTrxId] = useState('');
+  const [file, setFile] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileRef = useRef();
   const { submitDeposit } = useApp();
+
+  const spring = { type: 'spring', stiffness: 300, damping: 25, duration: 0.35 };
 
   const handleCopy = () => {
     navigator.clipboard.writeText('03022594589');
@@ -15,13 +19,40 @@ const DepositModal = ({ plan, isOpen, onClose }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleFileChange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) setFile(f);
+  };
+
+  const triggerFile = () => fileRef.current && fileRef.current.click();
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (trxId.length < 11) return alert('Please enter a valid Transaction ID');
-    
+    if (!trxId || trxId.replace(/[^0-9]/g, '').length !== 11) return alert('Please enter a valid 11-digit Transaction ID');
+    if (!file) return alert('Please attach the payment screenshot');
+
     setIsSubmitting(true);
+
+    // Simulate server processing
     setTimeout(() => {
-      submitDeposit(plan.id, trxId, 'mock-screenshot-url');
+      const payload = {
+        id: `dep-${Date.now()}`,
+        planId: plan.id,
+        planName: plan.name,
+        amount: plan.cost,
+        trxId: trxId,
+        screenshotName: file.name,
+        status: 'Pending',
+        timestamp: Date.now()
+      };
+
+      if (typeof onNewDeposit === 'function') {
+        onNewDeposit(payload);
+      } else {
+        // Backwards compatibility: call existing submitDeposit
+        submitDeposit(plan.id, trxId, file.name);
+      }
+
       setIsSubmitting(false);
       onClose();
       alert('Deposit submitted successfully! Approval will take 1-2 hours.');
@@ -42,10 +73,10 @@ const DepositModal = ({ plan, isOpen, onClose }) => {
         />
         
         <motion.div 
-          initial={{ y: "100%" }}
+          initial={{ y: '100%' }}
           animate={{ y: 0 }}
-          exit={{ y: "100%" }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          exit={{ y: '100%' }}
+          transition={spring}
           className="relative w-full max-w-md bg-slate-900 border-t sm:border border-slate-800 rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden"
         >
           {/* Header */}
@@ -107,36 +138,43 @@ const DepositModal = ({ plan, isOpen, onClose }) => {
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Transaction ID</label>
                 <input 
                   type="text"
-                  placeholder="Enter 11-20 digit Trx ID"
+                  placeholder="Enter 11-digit Trx ID"
                   className="w-full bg-slate-800 border border-slate-700 text-white p-4 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all font-mono"
                   value={trxId}
-                  onChange={(e) => setTrxId(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  onChange={(e) => setTrxId(e.target.value.replace(/[^0-9]/g, ''))}
                   required
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Payment Proof (Screenshot)</label>
-                <div className="w-full bg-slate-800 border border-dashed border-slate-700 p-8 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-800/80 transition-all group">
-                  <Upload className="w-8 h-8 text-slate-600 group-hover:text-primary transition-colors" />
-                  <p className="text-xs font-bold text-slate-500 italic">Select Screenshot from Gallery</p>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Payment Proof (Screenshot)</label>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+              <div onClick={triggerFile} className="w-full bg-slate-800 border border-dashed border-slate-700 p-4 rounded-2xl flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/80 transition-all">
+                <div className="flex items-center gap-3">
+                  <Upload className="w-6 h-6 text-slate-600" />
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">{file ? file.name : 'Select Screenshot from Gallery'}</p>
+                    <p className="text-xs text-slate-500">PNG, JPG - max 5MB</p>
+                  </div>
                 </div>
+                <button type="button" onClick={triggerFile} className="bg-primary text-white px-3 py-2 rounded-xl">Upload</button>
               </div>
+            </div>
 
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-blue-600 disabled:bg-slate-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Verifying...
-                  </>
-                ) : (
-                  'Confirm Investment'
-                )}
-              </button>
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-primary hover:bg-blue-600 disabled:bg-slate-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Processing Secure Escrow...
+                </>
+              ) : (
+                'Confirm Investment'
+              )}
+            </button>
             </form>
           </div>
         </motion.div>

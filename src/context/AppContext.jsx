@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { ensureUniquePayoutAccount } from '../utils/security';
 
 const AppContext = createContext();
 
@@ -60,7 +61,10 @@ export const AppProvider = ({ children }) => {
   }, [activePlans]);
 
   const login = (username, mobile, password) => {
-    setUser({ username, mobile });
+    // Ensure user object has a stable id for mapping payout accounts
+    const existing = JSON.parse(localStorage.getItem('faisa_user')) || null;
+    const id = existing && existing.id ? existing.id : `user-${Date.now()}`;
+    setUser({ id, username, mobile });
   };
 
   const logout = () => {
@@ -117,8 +121,16 @@ export const AppProvider = ({ children }) => {
   };
 
   const requestWithdrawal = (amount, method, account) => {
+    if (!user || !user.id) return { error: 'User not authenticated' };
     if (amount < 100 || amount > 5000) return { error: 'Amount must be between 100 and 5000 PKR' };
-    
+
+    // Anti-fraud: ensure payout account not already assigned to another user
+    try {
+      ensureUniquePayoutAccount(account, user.id, { withdrawals, deposits, teamMembers });
+    } catch (err) {
+      return { error: err.message };
+    }
+
     const today = new Date().toDateString();
     const withdrawalsToday = withdrawals.filter(w => new Date(w.createdAt).toDateString() === today && w.status !== 'rejected');
     
@@ -134,6 +146,7 @@ export const AppProvider = ({ children }) => {
 
     const newWithdrawal = {
       id: `wd-${Date.now()}`,
+      userId: user.id,
       amount,
       fee,
       networkFee: flatNetworkFee,

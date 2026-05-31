@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
 import { Wallet, TrendingUp, Clock, AlertCircle, ShoppingBag } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import TransactionHistoryGrid from '../components/TransactionHistoryGrid';
 
 const Dashboard = () => {
   const { balance, activePlans, user } = useApp();
@@ -140,6 +141,11 @@ const Dashboard = () => {
           <div className="hidden sm:block text-[11px] text-slate-500">Ad Placeholder</div>
         </div>
       </div>
+
+      {/* Transaction history grid */}
+      <section className="mt-6">
+        <TransactionHistoryGrid />
+      </section>
     </div>
   );
 };
