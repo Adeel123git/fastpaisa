@@ -17,16 +17,34 @@ const Login = () => {
     setMode(location.pathname === '/register' ? 'register' : 'login');
   }, [location.pathname]);
 
+  const { registerUser, validateCredentials } = useApp();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (mode === 'register') {
+      // Registration flow: create new user and log them in
+      if (!username || !mobile || !password) return alert('Sab fields bharain: Username, Mobile aur Password.');
+      const res = registerUser({ username, mobile, password });
+      if (res.error === 'username-taken') return alert('Username pehle se exist karta hai. Koi aur username choose karein.');
+      if (res.error) return alert('Registration error. Dobara koshish karein.');
+      navigate('/dashboard');
+      return;
+    }
+
+    // Login flow: strict credential check
     if (mode === 'login') {
-      if (username && password) {
-        login(username, '', password);
-        navigate('/dashboard');
+      if (!username || !password) return alert('Username aur Password dono zaroori hain.');
+      const res = validateCredentials(username, password);
+      if (res.error === 'not-registered') {
+        return alert('Aapka account register nahi hai! Pehle Register karein.');
       }
-    } else {
-      if (username && mobile && password) {
-        login(username, mobile, password);
+      if (res.error === 'wrong-password') {
+        return alert('Ghalat password! Dobara koshish karein.');
+      }
+      if (res.success) {
+        // set user via login helper to keep consistent state
+        login(username, '', password);
         navigate('/dashboard');
       }
     }

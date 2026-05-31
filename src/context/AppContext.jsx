@@ -20,6 +20,7 @@ export const AppProvider = ({ children }) => {
   const [deposits, setDeposits] = useState(() => JSON.parse(localStorage.getItem('faisa_deposits')) || []);
   const [withdrawals, setWithdrawals] = useState(() => JSON.parse(localStorage.getItem('faisa_withdrawals')) || []);
   const [teamMembers, setTeamMembers] = useState(() => JSON.parse(localStorage.getItem('faisa_team')) || []);
+  const [users, setUsers] = useState(() => JSON.parse(localStorage.getItem('faisa_users')) || []);
 
   useEffect(() => {
     localStorage.setItem('faisa_user', JSON.stringify(user));
@@ -28,7 +29,8 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('faisa_deposits', JSON.stringify(deposits));
     localStorage.setItem('faisa_withdrawals', JSON.stringify(withdrawals));
     localStorage.setItem('faisa_team', JSON.stringify(teamMembers));
-  }, [user, balance, activePlans, deposits, withdrawals, teamMembers]);
+    localStorage.setItem('faisa_users', JSON.stringify(users));
+  }, [user, balance, activePlans, deposits, withdrawals, teamMembers, users]);
 
   // Yield Calculation logic
   useEffect(() => {
@@ -60,11 +62,29 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [activePlans]);
 
+  const validateCredentials = (username, password) => {
+    if (!username) return { error: 'no-username' };
+    const found = users.find(u => u.username === username);
+    if (!found) return { error: 'not-registered' };
+    if (found.password !== password) return { error: 'wrong-password' };
+    return { success: true, user: found };
+  };
+
+  const registerUser = ({ username, mobile, password }) => {
+    if (!username || !password) return { error: 'missing-fields' };
+    const exists = users.find(u => u.username === username);
+    if (exists) return { error: 'username-taken' };
+    const newUser = { id: `user-${Date.now()}`, username, mobile: mobile || '', password };
+    setUsers(prev => [newUser, ...prev]);
+    setUser(newUser);
+    return { success: true, user: newUser };
+  };
+
   const login = (username, mobile, password) => {
-    // Ensure user object has a stable id for mapping payout accounts
-    const existing = JSON.parse(localStorage.getItem('faisa_user')) || null;
-    const id = existing && existing.id ? existing.id : `user-${Date.now()}`;
-    setUser({ id, username, mobile });
+    const res = validateCredentials(username, password);
+    if (res.error) return res;
+    setUser(res.user);
+    return { success: true };
   };
 
   const logout = () => {
@@ -176,8 +196,8 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      user, balance, activePlans, deposits, withdrawals, teamMembers,
-      login, logout, submitDeposit, approveDeposit, rejectDeposit,
+      user, users, balance, activePlans, deposits, withdrawals, teamMembers,
+      login, logout, registerUser, validateCredentials, submitDeposit, approveDeposit, rejectDeposit,
       requestWithdrawal, approveWithdrawal, rejectWithdrawal, setBalance
     }}>
       {children}
