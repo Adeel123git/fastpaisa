@@ -4,9 +4,12 @@ import { motion } from 'framer-motion';
 import { Wallet, TrendingUp, Clock, AlertCircle, ShoppingBag } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import TransactionHistoryGrid from '../components/TransactionHistoryGrid';
+import { useState } from 'react';
 
 const Dashboard = () => {
   const { balance, activePlans, user } = useApp();
+
+  const [activeTab, setActiveTab] = useState('deposits');
 
   const totalEarnings = activePlans.reduce((acc, plan) => acc + plan.earned, 0);
 
@@ -142,9 +145,35 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Transaction history grid */}
+      {/* Transaction history controls */}
       <section className="mt-6">
-        <TransactionHistoryGrid />
+        <div className="flex gap-3 items-center mb-4">
+          <motion.button
+            type="button"
+            onClick={() => setActiveTab('deposits')}
+            aria-pressed={activeTab === 'deposits'}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`${activeTab === 'deposits' ? 'bg-primary text-white' : 'bg-slate-800 text-slate-200'} flex-1 text-sm font-bold py-2 rounded-2xl shadow-sm transition-colors`}
+          >
+            Deposit History
+          </motion.button>
+
+          <motion.button
+            type="button"
+            onClick={() => setActiveTab('withdrawals')}
+            aria-pressed={activeTab === 'withdrawals'}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`${activeTab === 'withdrawals' ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-200'} flex-1 text-sm font-bold py-2 rounded-2xl shadow-sm transition-colors`}
+          >
+            Withdraw History
+          </motion.button>
+        </div>
+
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 25, duration: 0.35 }}>
+          <TransactionHistoryGrid view={activeTab} />
+        </motion.div>
       </section>
     </div>
   );
