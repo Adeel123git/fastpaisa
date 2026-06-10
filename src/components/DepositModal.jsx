@@ -28,8 +28,14 @@ const DepositModal = ({ plan, isOpen, onClose, onNewDeposit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!trxId || trxId.replace(/[^0-9]/g, '').length !== 11) return alert('Please enter a valid 11-digit Transaction ID');
-    if (!file) return alert('Please attach the payment screenshot');
+    if (!trxId || trxId.replace(/[^0-9]/g, '').length !== 11) {
+      window.dispatchEvent(new CustomEvent('fastpaisa:toast', { detail: { message: 'Please enter a valid 11-digit Transaction ID', type: 'error' } }));
+      return;
+    }
+    if (!file) {
+      window.dispatchEvent(new CustomEvent('fastpaisa:toast', { detail: { message: 'Please attach the payment screenshot', type: 'error' } }));
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -55,7 +61,7 @@ const DepositModal = ({ plan, isOpen, onClose, onNewDeposit }) => {
 
       setIsSubmitting(false);
       onClose();
-      alert('Deposit submitted successfully! Approval will take 1-2 hours.');
+      window.dispatchEvent(new CustomEvent('fastpaisa:toast', { detail: { message: 'Deposit submitted successfully! Approval will take 1-2 hours.', type: 'success' } }));
     }, 1500);
   };
 

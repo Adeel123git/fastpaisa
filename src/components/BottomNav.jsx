@@ -3,14 +3,14 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Wallet, Users, MessageSquare, List, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const BottomNav = () => {
+export default function BottomNav() {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { to: '/plans', icon: List, label: 'Plans' },
     { to: '/history', icon: Clock, label: 'History' },
     { to: '/withdraw', icon: Wallet, label: 'Withdraw' },
     { to: '/team', icon: Users, label: 'Team' },
-    { to: '/support', icon: MessageSquare, label: 'Support' },
+    { to: '/support', icon: MessageSquare, label: 'Support' }
   ];
 
   return (
@@ -22,8 +22,8 @@ const BottomNav = () => {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center justify-center w-full h-full transition-colors",
-                isActive ? "text-primary" : "text-slate-400 hover:text-slate-200"
+                'flex flex-col items-center justify-center w-full h-full transition-colors',
+                isActive ? 'text-primary' : 'text-slate-400 hover:text-slate-200'
               )
             }
           >
@@ -34,6 +34,4 @@ const BottomNav = () => {
       </div>
     </nav>
   );
-};
-
-export default BottomNav;
+}

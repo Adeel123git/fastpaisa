@@ -3,6 +3,8 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import BottomNav from './BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
+import WhatsAppFloat from './WhatsAppFloat';
+import ToastContainer from './Toast';
 
 const Layout = () => {
   return (
@@ -24,6 +26,8 @@ const Layout = () => {
       </main>
 
       <BottomNav />
+      <WhatsAppFloat />
+      <ToastContainer />
     </div>
   );
 };

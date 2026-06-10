@@ -4,11 +4,11 @@ import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
 import { Lock, Phone, User, ArrowRight } from 'lucide-react';
 
-const Login = () => {
+export default function Login() {
   const [username, setUsername] = useState('');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useApp();
+  const { login, registerUser } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [mode, setMode] = useState(location.pathname === '/register' ? 'register' : 'login');
@@ -17,31 +17,45 @@ const Login = () => {
     setMode(location.pathname === '/register' ? 'register' : 'login');
   }, [location.pathname]);
 
-  const { registerUser, validateCredentials } = useApp();
-
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (mode === 'register') {
-      // Registration flow: create new user and log them in
-      if (!username || !mobile || !password) return alert('Sab fields bharain: Username, Mobile aur Password.');
+      if (!username || !mobile || !password) {
+        alert('Sab fields bharain: Username, Mobile aur Password.');
+        return;
+      }
+
       const res = registerUser({ username, mobile, password });
-      if (res.error === 'username-taken') return alert('Username pehle se exist karta hai. Koi aur username choose karein.');
-      if (res.error) return alert('Registration error. Dobara koshish karein.');
+      if (res && res.error === 'username-taken') {
+        alert('Username pehle se exist karta hai. Koi aur username choose karein.');
+        return;
+      }
+      if (res && res.error) {
+        alert('Registration error. Dobara koshish karein.');
+        return;
+      }
+
       navigate('/dashboard');
       return;
     }
 
-    // Login flow: strict credential check
+    // Login flow
     if (mode === 'login') {
-      if (!username || !password) return alert('Username aur Password dono zaroori hain.');
+      if (!username || !password) {
+        alert('Username aur Password dono zaroori hain.');
+        return;
+      }
 
-      // Strict localStorage check using 'fastpaisa_users'
       const raw = localStorage.getItem('fastpaisa_users') || localStorage.getItem('faisa_users');
       let storedUsers = [];
-      try { storedUsers = raw ? JSON.parse(raw) : []; } catch (err) { storedUsers = []; }
+      try {
+        storedUsers = raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        storedUsers = [];
+      }
 
-      const found = storedUsers.find(u => u.username === username);
+      const found = storedUsers.find((u) => u.username === username);
       if (!found) {
         alert('Aapka account register nahi hai! Pehle Register karein.');
         return;
@@ -52,7 +66,7 @@ const Login = () => {
         return;
       }
 
-      // Verified — perform login via context to sync app state
+      // Verified - call context login to set session
       login(found.username, found.mobile || '', found.password);
       navigate('/dashboard');
     }
@@ -61,21 +75,13 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 bg-[overflow-hidden]">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 rounded-full blur-[120px]"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 rounded-full blur-[120px]" />
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md z-10"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md z-10">
         <div className="text-center mb-10">
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="w-20 h-20 bg-primary rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-2xl shadow-primary/30"
-          >
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-primary rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-2xl shadow-primary/30">
             <Lock className="w-10 h-10 text-white" />
           </motion.div>
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">FastPaisa</h1>
@@ -96,7 +102,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Mobile number only required on registration */}
             {mode === 'register' && (
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
@@ -106,7 +111,7 @@ const Login = () => {
                   className="w-full bg-slate-900/50 border border-slate-700 text-white pl-12 pr-4 py-4 rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-600"
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
-                  required={mode === 'register'}
+                  required
                 />
               </div>
             )}
@@ -123,10 +128,7 @@ const Login = () => {
               />
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-            >
+            <button type="submit" className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
               {mode === 'login' ? 'Secure Access' : 'Create Account'}
               <ArrowRight className="w-5 h-5" />
             </button>
@@ -136,21 +138,18 @@ const Login = () => {
         <p className="text-center mt-4 text-slate-400 text-sm">
           {mode === 'login' ? (
             <>
-              Don't have an account? <button onClick={() => navigate('/register')} className="text-primary font-bold">Register</button>
+              Don&apos;t have an account? <button type="button" onClick={() => navigate('/register')} className="text-primary font-bold">Register</button>
             </>
           ) : (
             <>
-              Already have an account? <button onClick={() => navigate('/login')} className="text-primary font-bold">Login</button>
+              Already have an account? <button type="button" onClick={() => navigate('/login')} className="text-primary font-bold">Login</button>
             </>
           )}
         </p>
 
-        <p className="text-center mt-4 text-slate-500 text-sm">
-          By continuing, you agree to our <span className="text-slate-300 font-semibold cursor-pointer">Terms of Service</span>
-        </p>
+        <p className="text-center mt-4 text-slate-500 text-sm">By continuing, you agree to our <span className="text-slate-300 font-semibold cursor-pointer">Terms of Service</span></p>
       </motion.div>
     </div>
   );
-};
-
-export default Login;
+}
+// single default export is defined above
