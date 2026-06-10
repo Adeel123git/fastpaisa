@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Wallet, Users, MessageSquare, List } from 'lucide-react';
+import { LayoutDashboard, Wallet, Users, MessageSquare, List, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const BottomNav = () => {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { to: '/plans', icon: List, label: 'Plans' },
+    { to: '/history', icon: Clock, label: 'History' },
     { to: '/withdraw', icon: Wallet, label: 'Withdraw' },
     { to: '/team', icon: Users, label: 'Team' },
     { to: '/support', icon: MessageSquare, label: 'Support' },

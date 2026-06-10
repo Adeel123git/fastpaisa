@@ -35,18 +35,26 @@ const Login = () => {
     // Login flow: strict credential check
     if (mode === 'login') {
       if (!username || !password) return alert('Username aur Password dono zaroori hain.');
-      const res = validateCredentials(username, password);
-      if (res.error === 'not-registered') {
-        return alert('Aapka account register nahi hai! Pehle Register karein.');
+
+      // Strict localStorage check using 'fastpaisa_users'
+      const raw = localStorage.getItem('fastpaisa_users') || localStorage.getItem('faisa_users');
+      let storedUsers = [];
+      try { storedUsers = raw ? JSON.parse(raw) : []; } catch (err) { storedUsers = []; }
+
+      const found = storedUsers.find(u => u.username === username);
+      if (!found) {
+        alert('Aapka account register nahi hai! Pehle Register karein.');
+        return;
       }
-      if (res.error === 'wrong-password') {
-        return alert('Ghalat password! Dobara koshish karein.');
+
+      if (found.password !== password) {
+        alert('Ghalat password! Dobara koshish karein.');
+        return;
       }
-      if (res.success) {
-        // set user via login helper to keep consistent state
-        login(username, '', password);
-        navigate('/dashboard');
-      }
+
+      // Verified — perform login via context to sync app state
+      login(found.username, found.mobile || '', found.password);
+      navigate('/dashboard');
     }
   };
 

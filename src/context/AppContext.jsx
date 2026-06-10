@@ -14,22 +14,23 @@ export const PLANS = [
 ];
 
 export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('faisa_user')) || null);
-  const [balance, setBalance] = useState(() => Number(localStorage.getItem('faisa_balance')) || 0);
-  const [activePlans, setActivePlans] = useState(() => JSON.parse(localStorage.getItem('faisa_active_plans')) || []);
-  const [deposits, setDeposits] = useState(() => JSON.parse(localStorage.getItem('faisa_deposits')) || []);
-  const [withdrawals, setWithdrawals] = useState(() => JSON.parse(localStorage.getItem('faisa_withdrawals')) || []);
-  const [teamMembers, setTeamMembers] = useState(() => JSON.parse(localStorage.getItem('faisa_team')) || []);
-  const [users, setUsers] = useState(() => JSON.parse(localStorage.getItem('faisa_users')) || []);
+  // Use 'fastpaisa_' prefixed localStorage keys for strict project-wide consistency
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('fastpaisa_user')) || null);
+  const [balance, setBalance] = useState(() => Number(localStorage.getItem('fastpaisa_balance')) || 0);
+  const [activePlans, setActivePlans] = useState(() => JSON.parse(localStorage.getItem('fastpaisa_active_plans')) || []);
+  const [deposits, setDeposits] = useState(() => JSON.parse(localStorage.getItem('fastpaisa_deposits')) || []);
+  const [withdrawals, setWithdrawals] = useState(() => JSON.parse(localStorage.getItem('fastpaisa_withdrawals')) || []);
+  const [teamMembers, setTeamMembers] = useState(() => JSON.parse(localStorage.getItem('fastpaisa_team')) || []);
+  const [users, setUsers] = useState(() => JSON.parse(localStorage.getItem('fastpaisa_users')) || []);
 
   useEffect(() => {
-    localStorage.setItem('faisa_user', JSON.stringify(user));
-    localStorage.setItem('faisa_balance', balance.toString());
-    localStorage.setItem('faisa_active_plans', JSON.stringify(activePlans));
-    localStorage.setItem('faisa_deposits', JSON.stringify(deposits));
-    localStorage.setItem('faisa_withdrawals', JSON.stringify(withdrawals));
-    localStorage.setItem('faisa_team', JSON.stringify(teamMembers));
-    localStorage.setItem('faisa_users', JSON.stringify(users));
+    localStorage.setItem('fastpaisa_user', JSON.stringify(user));
+    localStorage.setItem('fastpaisa_balance', balance.toString());
+    localStorage.setItem('fastpaisa_active_plans', JSON.stringify(activePlans));
+    localStorage.setItem('fastpaisa_deposits', JSON.stringify(deposits));
+    localStorage.setItem('fastpaisa_withdrawals', JSON.stringify(withdrawals));
+    localStorage.setItem('fastpaisa_team', JSON.stringify(teamMembers));
+    localStorage.setItem('fastpaisa_users', JSON.stringify(users));
   }, [user, balance, activePlans, deposits, withdrawals, teamMembers, users]);
 
   // Yield Calculation logic

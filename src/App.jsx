@@ -9,6 +9,7 @@ import Team from './pages/Team';
 import Withdraw from './pages/Withdraw';
 import Support from './pages/Support';
 import AdminPanel from './pages/AdminPanel';
+import History from './pages/History';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useApp();
@@ -32,6 +33,7 @@ const AppRoutes = () => {
       </Route>
 
       <Route path="/secret-adeel-panel" element={<AdminPanel />} />
+      <Route path="/history" element={<History />} />
       
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

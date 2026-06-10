@@ -1,67 +1,104 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Headset, MoreHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const spring = { type: 'spring', stiffness: 300, damping: 25, duration: 0.35 };
 
-function matchKeywords(input) {
-  const txt = (input || '').toLowerCase();
+const SYSTEM_PROMPT = `You are the Official FastPaisa Premium Support Executive. You must always reply in extremely natural, professional, and friendly Roman Urdu (e.g., "Walaikum Assalam bhai! Aapka deposit 15 mins mein active ho jayega..."). You must act like a helpful human sitting at the helpdesk. You know everything about FastPaisa: 7 investment tiers (Plan 1: 250 PKR with 15 PKR/day, Plan 2: 520 PKR with 35 PKR/day, Plan 3: 1000 PKR with 70 PKR/day, Plan 4: 1800 PKR with 130 PKR/day, Plan 5: 2800 PKR with 210 PKR/day, Plan 6: 3900 PKR with 460 PKR/day, Plan 7: 5000 PKR with 600 PKR/day) — all plans valid for 45 days. Withdrawals have a 100 PKR minimum, 15 PKR flat fee, and take 1-2 hours. If a user asks general out-of-context questions, reply intelligently but politely guide them back to FastPaisa services.`;
 
-  const depositTriggers = ['deposit', 'trx', 'paisa', 'ss', 'receipt'];
-  const withdrawTriggers = ['withdraw', 'pese', 'easypaisa', 'jazzcash', 'payout'];
-  const planTriggers = ['plan', 'package', 'invest', 'yield'];
-
-  if (depositTriggers.some(k => txt.includes(k))) return 'deposit';
-  if (withdrawTriggers.some(k => txt.includes(k))) return 'withdraw';
-  if (planTriggers.some(k => txt.includes(k))) return 'plan';
-  return 'default';
-}
-
-function responseFor(type) {
-  if (type === 'deposit') {
-    return `Deposit receive karne ke baad admin manual check karega. Usually 15-30 minutes ke andar aapka Trx verify ho jata hai. Baraye meherbani Trx ID aur SS bilkul clear bhejein taake verification fast ho.`;
+function safeParseAIResponse(json) {
+  try {
+    if (!json) return null;
+    if (json?.candidates && json.candidates[0]?.content) return json.candidates[0].content;
+    if (json?.output && Array.isArray(json.output) && json.output[0]?.content) return json.output[0].content[0]?.text || json.output[0].content[0]?.content || null;
+    if (json?.choices && json.choices[0]?.message?.content) return json.choices[0].message.content;
+    if (json?.message?.content) return json.message.content;
+    if (typeof json === 'string') return json;
+    return JSON.stringify(json);
+  } catch (err) {
+    return null;
   }
-  if (type === 'withdraw') {
-    return `Withdraw ki policy: Minimum PKR 100, Maximum PKR 5,000. Har payout par PKR 15 network infrastructure fee lagta hai. Processing normally 1-2 ghantay; agar queue zyada ho to thoda intizaar barhtey hain.`;
-  }
-  if (type === 'plan') {
-    return `Hamare 7 plans fixed 45-day contracts hain. Har plan ka daily yield aur total return pre-defined hai. Aap multiple instances ek saath purchase kar sakte hain; har instance alag timer aur accrual rakhta hai.`;
-  }
-  return `Shukriya, aapka message mila. Baraye specific madad, deposit/withdraw/plan se related koi specific detail bhejein (e.g., Trx ID ya plan name).`;
 }
 
 const Support = () => {
-  const { user } = useApp();
-  const [messages, setMessages] = useState([
-    { id: 1, text: 'Assalam-o-Alaikum! Main FastPaisa Support Desk hoon. Aap kis cheez mein madad chahte hain?', sender: 'bot', time: new Date() }
-  ]);
+  const { user, deposits, withdrawals, balance } = useApp();
+  const [messages, setMessages] = useState(() => {
+    const stored = localStorage.getItem('fastpaisa_support_messages');
+    if (stored) try { return JSON.parse(stored); } catch (e) {}
+    return [{ id: 'sys-1', role: 'assistant', text: 'Assalam-o-Alaikum! Main FastPaisa Support Desk hoon. Aap kis cheez mein madad chahte hain?' }];
+  });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
+    localStorage.setItem('fastpaisa_support_messages', JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages, isTyping]);
 
-  const handleSend = (e) => {
-    e.preventDefault();
+  const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+  const sendToGemini = useCallback(async (userMessage) => {
+    // Read API key from environment. Set VITE_GEMINI_API_KEY in your local .env file.
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!API_KEY) {
+      console.warn('VITE_GEMINI_API_KEY not set. Add it to your .env file.');
+    }
+    const payload = {
+      prompt: {
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `User context: username=${user?.username || 'guest'}, balance=${balance}, deposits=${deposits.length}, withdrawals=${withdrawals.length}` },
+          { role: 'user', content: userMessage }
+        ]
+      },
+      temperature: 0.2,
+      maxOutputTokens: 800
+    };
+
+    try {
+      const url = 'https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({ prompt: { messages: payload.prompt.messages.map(m => ({ role: m.role, content: m.content })) }, temperature: payload.temperature, maxOutputTokens: payload.maxOutputTokens })
+      });
+      const json = await res.json();
+      const aiText = safeParseAIResponse(json) || 'Maaf kijiye, abhi kuch masla hai — dobara try karein.';
+      return aiText;
+    } catch (err) {
+      console.error('AI send error', err);
+      return 'Maaf kijiye, hamare AI service mein thodi der ke liye masla hai. Aap kuch dair baad try karein.';
+    }
+  }, [user, balance, deposits, withdrawals]);
+
+  const handleSend = async (e) => {
+    e?.preventDefault();
     if (!input.trim()) return;
 
-    const userMsg = { id: Date.now(), text: input, sender: 'user', time: new Date() };
+    const userText = input.trim();
+    const userMsg = { id: `u-${Date.now()}`, role: 'user', text: userText };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
 
-    // Simulated thinking
     setIsTyping(true);
-    setTimeout(() => {
-      const type = matchKeywords(input);
-      const reply = responseFor(type);
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: reply, sender: 'bot', time: new Date() }]);
-      setIsTyping(false);
-    }, 1500);
+
+    const minDelay = delay(1500);
+    const aiPromise = sendToGemini(userText);
+
+    const [aiText] = await Promise.all([aiPromise, minDelay]);
+
+    setMessages(prev => [...prev, { id: `b-${Date.now()}`, role: 'assistant', text: aiText }]);
+    setIsTyping(false);
   };
 
   return (
@@ -85,8 +122,8 @@ const Support = () => {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar scroll-smooth">
         <AnimatePresence initial={false}>
           {messages.map(m => (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] p-4 rounded-3xl text-sm font-medium leading-relaxed ${m.sender === 'user' ? 'bg-primary text-white rounded-tr-none shadow-lg shadow-primary/10' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700/50'}`}>
+            <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={spring} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] p-4 rounded-3xl text-sm font-medium leading-relaxed ${m.role === 'user' ? 'bg-primary text-white rounded-tr-none shadow-lg shadow-primary/10' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700/50'}`}>
                 {m.text}
               </div>
             </motion.div>
@@ -99,7 +136,7 @@ const Support = () => {
               <span className="w-1.5 h-1.5 bg-slate-500 rounded-full typing-dot"></span>
               <span className="w-1.5 h-1.5 bg-slate-500 rounded-full typing-dot"></span>
               <span className="w-1.5 h-1.5 bg-slate-500 rounded-full typing-dot"></span>
-              <span className="ml-2 text-slate-400">Agent thinking...</span>
+              <span className="ml-2 text-slate-400">Agent typing...</span>
             </div>
           </motion.div>
         )}

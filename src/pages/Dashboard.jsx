@@ -145,35 +145,14 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Transaction history controls */}
       <section className="mt-6">
-        <div className="flex gap-3 items-center mb-4">
-          <motion.button
-            type="button"
-            onClick={() => setActiveTab('deposits')}
-            aria-pressed={activeTab === 'deposits'}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className={`${activeTab === 'deposits' ? 'bg-primary text-white' : 'bg-slate-800 text-slate-200'} flex-1 text-sm font-bold py-2 rounded-2xl shadow-sm transition-colors`}
-          >
-            Deposit History
-          </motion.button>
-
-          <motion.button
-            type="button"
-            onClick={() => setActiveTab('withdrawals')}
-            aria-pressed={activeTab === 'withdrawals'}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className={`${activeTab === 'withdrawals' ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-200'} flex-1 text-sm font-bold py-2 rounded-2xl shadow-sm transition-colors`}
-          >
-            Withdraw History
-          </motion.button>
+        <div className="bg-slate-800/40 border border-slate-700 p-4 rounded-2xl flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-black text-white">Transaction History</h4>
+            <p className="text-xs text-slate-400">All deposits & withdrawals moved to the dedicated History page.</p>
+          </div>
+          <NavLink to="/history" className="bg-primary px-4 py-2 rounded-xl font-bold text-sm text-white">Open History</NavLink>
         </div>
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 25, duration: 0.35 }}>
-          <TransactionHistoryGrid view={activeTab} />
-        </motion.div>
       </section>
     </div>
   );
